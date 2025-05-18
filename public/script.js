@@ -324,6 +324,9 @@ let editingTransactionId = null;
 let currentSortField = 'date';
 let currentSortDirection = 'desc';
 
+// Add currentTransactionType as a global variable
+let currentTransactionType = 'income'; // Default transaction type
+
 // Update loadTransactions function
 async function loadTransactions() {
     try {
@@ -653,8 +656,6 @@ function initModalHandling() {
     const categoryField = document.getElementById('categoryField');
     const toggleBtns = document.querySelectorAll('.toggle-btn');
     const amountInput = document.getElementById('amount');
-
-    let currentTransactionType = 'income';
 
     // Initialize category handling
     initCategoryHandling();
