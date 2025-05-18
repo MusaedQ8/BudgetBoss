@@ -470,6 +470,9 @@ function editTransaction(id, transaction, isRecurringInstance) {
     document.getElementById('description').value = transaction.description;
     document.getElementById('transactionDate').value = transaction.date;
     
+    // Update the currentTransactionType to match the transaction being edited
+    currentTransactionType = transaction.type;
+    
     // Set transaction type
     toggleBtns.forEach(btn => {
         btn.classList.toggle('active', btn.dataset.type === transaction.type);
