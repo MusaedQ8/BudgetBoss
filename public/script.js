@@ -1,6 +1,13 @@
 import { ToastManager } from "./managers/toast";
 const toastManager = new ToastManager(document.getElementById('toast-container'));
 
+// Global variables
+let currentTransactionType = 'income'; // Default transaction type
+let currentFilter = null; // null = show all, 'income' = only income, 'expense' = only expenses
+let editingTransactionId = null;
+let currentSortField = 'date';
+let currentSortDirection = 'desc';
+
 // Theme toggle functionality
 function getBaseUrl() {
     // First try to get it from the server-provided meta tag
@@ -313,19 +320,6 @@ async function handleFetchResponse(response) {
 
     return response;
 }
-
-// Add currentFilter variable at the top with other shared variables
-let currentFilter = null; // null = show all, 'income' = only income, 'expense' = only expenses
-
-// Add at the top with other variables
-let editingTransactionId = null;
-
-// Add at the top with other shared variables
-let currentSortField = 'date';
-let currentSortDirection = 'desc';
-
-// Add currentTransactionType as a global variable
-let currentTransactionType = 'income'; // Default transaction type
 
 // Update loadTransactions function
 async function loadTransactions() {
