@@ -27,6 +27,7 @@ const PIN = process.env[`${projectName}_PIN`];
 // Ensure data directory exists
 const DATA_DIR = path.join(__dirname, 'data');
 const TRANSACTIONS_FILE = path.join(DATA_DIR, 'transactions.json');
+const ACCOUNTS_FILE = path.join(DATA_DIR, 'accounts.json');
 
 // Debug logging setup
 const DEBUG = process.env.DEBUG === 'TRUE';
@@ -75,6 +76,19 @@ async function loadTransactions() {
                 income: [],
                 expenses: []
             }
+        };
+    }
+}
+
+async function loadAccounts() {
+    try {
+        await fs.access(ACCOUNTS_FILE);
+        const data = await fs.readFile(ACCOUNTS_FILE, 'utf8');
+        return JSON.parse(data);
+    } catch (error) {
+        // If file doesn't exist or is invalid, return empty structure
+        return {
+            accounts: []
         };
     }
 }
@@ -312,6 +326,11 @@ setInterval(() => {
         }
     }
 }, 60000); // Clean up every minute
+
+async function getAccounts() {
+    const accounts = await loadAccounts();
+    return accounts;
+}
 
 // Helper function to get transactions within date range
 async function getTransactionsInRange(startDate, endDate) {
@@ -701,6 +720,17 @@ function generateRecurringInstances(transaction, startDate, endDate) {
 }
 
 // Update the range endpoint to include recurring instances
+app.get(BASE_PATH + '/api/accounts', authMiddleware, async (req, res) => {
+    try {
+        const accounts = await getAccounts();
+        res.json(accounts);
+    } catch (error) {
+        console.error('Error fetching accounts:', error);
+        res.status(500).json({ error: 'Failed to fetch accounts' });
+    }
+});
+
+// Update the range endpoint to include recurring instances
 app.get(BASE_PATH + '/api/transactions/range', authMiddleware, async (req, res) => {
     try {
         const { start, end } = req.query;
@@ -1049,6 +1079,11 @@ app.get(BASE_PATH + '/api/calendar/transactions', apiAuthMiddleware, async (req,
         console.error('Calendar API error:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
+});
+
+// Route for accounts page
+app.get(BASE_PATH + '/accounts', authMiddleware, (req, res) => {
+    res.sendFile(path.join(PUBLIC_DIR, 'accounts.html'));
 });
 
 // Add logging to server startup

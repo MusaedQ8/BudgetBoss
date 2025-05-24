@@ -365,7 +365,7 @@ header {
     margin-bottom: 1rem;
 }
 
-#transactionForm {
+.form {
     display: grid;
     gap: 0.5rem;
     padding: 0.75rem;
@@ -376,8 +376,8 @@ header {
     transform: none;
 }
 
-#transactionForm select,
-#transactionForm input {
+.form select,
+.form input {
     padding: 0.5rem;
     border: 1px solid var(--border);
     border-radius: 6px;
@@ -387,7 +387,7 @@ header {
     width: 100%;
 }
 
-#transactionForm button {
+.form button {
     background: var(--primary);
     color: white;
     border: none;
@@ -398,12 +398,12 @@ header {
     transition: background-color var(--transition);
 }
 
-#transactionForm button:hover {
+.form button:hover {
     background: var(--primary-hover);
 }
 
 /* Transactions List */
-.transactions {
+.section-list {
     background: var(--card-bg);
     padding: 0.75rem;
     border-radius: 8px;
@@ -501,6 +501,12 @@ header {
 }
 
 #transactionsList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+#accountList {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
@@ -713,7 +719,7 @@ footer {
 }
 
 /* Add Transaction Button */
-.add-transaction-btn {
+.add-btn {
     width: auto;
     background: var(--primary);
     color: white;
@@ -727,12 +733,12 @@ footer {
     transition: background-color var(--transition);
 }
 
-.add-transaction-btn:hover {
+.add-btn:hover {
     background: var(--primary-hover);
 }
 
 @media (max-width: 600px) {
-    .add-transaction-btn {
+    .add-btn {
         width: auto;
         padding: 0.5rem 2rem;
     }
@@ -828,13 +834,13 @@ footer {
     box-shadow: var(--shadow);
 }
 
-#transactionForm {
+.form {
     display: grid;
     gap: 0.75rem;
 }
 
-#transactionForm input,
-#transactionForm select {
+.form input,
+.form select {
     padding: 0.5rem;
     border: 1px solid var(--border);
     border-radius: 6px;
@@ -844,7 +850,7 @@ footer {
     width: 100%;
 }
 
-#transactionForm button {
+.form button {
     background: var(--primary);
     color: white;
     border: none;
@@ -855,7 +861,7 @@ footer {
     transition: background-color var(--transition);
 }
 
-#transactionForm button:hover {
+.form button:hover {
     background: var(--primary-hover);
 }
 
@@ -891,19 +897,19 @@ footer {
     appearance: none;
 }
 
-#transactionForm input[type="date"] {
+.form input[type="date"] {
     font-family: inherit;
     color: var(--text);
     opacity: 0.9;
 }
 
-#transactionForm input[type="date"]::-webkit-calendar-picker-indicator {
+.form input[type="date"]::-webkit-calendar-picker-indicator {
     filter: invert(var(--is-dark, 0));
     opacity: 0.5;
     cursor: pointer;
 }
 
-#transactionForm input[type="date"]::-webkit-calendar-picker-indicator:hover {
+.form input[type="date"]::-webkit-calendar-picker-indicator:hover {
     opacity: 0.8;
 }
 

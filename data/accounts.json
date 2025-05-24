@@ -1,0 +1,14 @@
+[
+    {
+        "id": "8527fa37-9d64-41fc-9c3e-9521d9882913",
+        "name": "Bank Account",
+        "type": "Bank Account",
+        "balance": 1000
+    },  
+    {
+        "id": "6453cd18-cd31-4683-b8ae-60ea75832177",
+        "name": "Banco Inter",
+        "type": "Credit Card",
+        "balance": 1000
+    }
+]

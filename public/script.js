@@ -8,6 +8,9 @@ let editingTransactionId = null;
 let currentSortField = 'date';
 let currentSortDirection = 'desc';
 
+let currentAccountType = 'account'; // Default account type
+let currentAccount = null;
+
 // Theme toggle functionality
 function getBaseUrl() {
     // First try to get it from the server-provided meta tag
@@ -319,6 +322,35 @@ async function handleFetchResponse(response) {
     }
 
     return response;
+}
+
+// Update loadTransactions function
+async function loadAccounts() {
+    try{
+        const response = await fetch(joinPath(`api/accounts`), fetchConfig);
+        await handleFetchResponse(response);
+        const accounts = await response.json();
+
+        console.log(accounts);
+
+        const accountsList = document.getElementById('accountsList');
+        accountsList.innerHTML = accounts.map(account => {
+            return `
+            <div class="transaction-item" data-id="${account.id}">
+                <div class="transaction-content">
+                    <div class="details">
+                        <div class="name">${account.name}</div>
+                        <div class="amount">${formatCurrency(account.balance)}</div>
+                    </div>
+                </div>
+            </div>
+            `;
+        }).join('');
+        
+    }catch (error) {
+    console.error('Error loading accounts:', error);
+    debugLog('Error loading accounts:', error);
+    }
 }
 
 // Update loadTransactions function
@@ -638,8 +670,41 @@ function initCategoryHandling() {
     });
 }
 
-// Update the initModalHandling function to include category handling
-function initModalHandling() {
+function initAccountModalHandling() {
+    const modal = document.getElementById('accountModal');
+    // Only initialize if we're on the accounts page
+    if (!modal) return;
+
+    const addAccountBtn = document.getElementById('addAccountBtn');
+    const closeModalBtn = document.querySelector('.close-modal');
+    const accountForm = document.getElementById('accountForm');
+    const toggleBtns = document.querySelectorAll('.toggle-btn');
+
+    addAccountBtn.addEventListener('click', () => {
+        modal.classList.add('active');
+        // Reset form
+        accountForm.reset();
+        // Reset toggle buttons
+        toggleBtns.forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.type === 'account');
+        });
+    });
+
+    closeModalBtn.addEventListener('click', () => {
+        modal.classList.remove('active');
+    });
+
+    accountForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = document.getElementById('name').value;
+        const type = document.querySelector('.toggle-btn.active').getAttribute('account-type');
+        addAccount(name, type);
+        modal.style.display = 'none';
+    });
+}
+
+// Update the initTransactionModalHandling function to include category handling
+function initTransactionModalHandling() {
     const modal = document.getElementById('transactionModal');
     // Only initialize if we're on the main page
     if (!modal) return;
@@ -924,6 +989,20 @@ function getDaySuffix(day) {
     }
 }
 
+async function initAccountsPage() {
+    await fetchCurrentCurrency();
+    const accountsContainer = document.getElementById('accountModal');
+    if (!accountsContainer) return; // Only run on accounts page
+
+    // Update currency symbols
+    // const currencyInfo = SUPPORTED_CURRENCIES[currentCurrency] || SUPPORTED_CURRENCIES.USD;
+    // document.querySelector('.currency-sort-symbol').textContent = currencyInfo.symbol;
+    // document.querySelector('.currency-symbol').textContent = currencyInfo.symbol;
+
+    // Initial load
+    await loadAccounts();
+}
+
 // Update the initMainPage function to fetch currency first
 async function initMainPage() {
     await fetchCurrentCurrency();
@@ -1144,15 +1223,20 @@ const registerServiceWorker = () => {
     
     // Check which page we're on
     const isLoginPage = window.location.pathname.includes('login');
+    const isAccountsPage = window.location.pathname.includes('accounts');
     
     if (isLoginPage) {
         // Only initialize PIN inputs on login page
         setupPinInputs();
+    } else if (isAccountsPage) {
+        console.log("Página de Contas")
+        // Initialize accounts page functionality
+        initAccountModalHandling();
+        initAccountsPage();
     } else {
         // Only initialize main page functionality when not on login
-        initModalHandling();
+        initTransactionModalHandling();
         initMainPage();
     }
 
     registerServiceWorker();
-
