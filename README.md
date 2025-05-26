@@ -1,4 +1,4 @@
-# DumbBudget (Custom Fork)
+# BudgetBoss (Custom Fork)
 
 A personal finance tracker based on [DumbWareio/DumbBudget](https://github.com/DumbWareio/DumbBudget), with key improvements for multi-account and dashboard-based financial insights.
 
@@ -36,28 +36,28 @@ This is a fork of the original **DumbBudget** project, extended with new feature
 docker run -d \
   -p 3000:3000 \
   -v /path/to/your/data:/app/data \
-  -e DUMBBUDGET_PIN=12345 \
+  -e BUDGETBOSS_PIN=12345 \
   -e CURRENCY=USD \
   -e BASE_URL=http://localhost:3000 \
   -e SITE_TITLE='My Account' \
-  my-custom/dumbbudget:latest
+  maranguapo/budgetboss:latest
 ```
 
 ### Environment Variables
 
 | Variable         | Description                    | Required | Default                                        |
 | ---------------- | ------------------------------ | -------- | ---------------------------------------------- |
-| `DUMBBUDGET_PIN` | PIN code to access the app     | Yes      | -                                              |
+| `BUDGETBOSS_PIN` | PIN code to access the app     | Yes      | -                                              |
 | `CURRENCY`       | Currency code for transactions | No       | USD                                            |
 | `BASE_URL`       | Base URL of the app            | No       | [http://localhost:3000](http://localhost:3000) |
-| `SITE_TITLE`     | Title shown on the app         | No       | DumbBudget                                     |
+| `SITE_TITLE`     | Title shown on the app         | No       | BudgetBoss                                     |
 | `INSTANCE_NAME`  | Name of the specific instance  | No       | -                                              |
 
 ### Development
 
 ```bash
-git clone https://github.com/maranguapo/MaranguapoBudget.git
-cd MaranguapoBudget
+git clone https://github.com/maranguapo/BudgetBoss.git
+cd BudgetBoss
 npm install
 npm run dev
 ```
