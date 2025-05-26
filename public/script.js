@@ -87,8 +87,8 @@ async function updateInstanceName() {
         document.getElementById('instance-name').textContent = data.instanceName;
     } catch (error) {
         console.error('Error fetching instance name, falling back to default. Error: ', error);
-        document.title = 'DumbBudget';
-        document.getElementById('instance-name').textContent = 'DumbBudget';
+        document.title = 'BudgetBoss';
+        document.getElementById('instance-name').textContent = 'BudgetBoss';
     }
 }
 
@@ -1184,7 +1184,7 @@ async function initMainPage() {
             const configResponse = await fetch(joinPath('api/config'), fetchConfig);
             await handleFetchResponse(configResponse);
             const config = await configResponse.json();
-            const instanceName = config.instanceName || 'DumbBudget';
+            const instanceName = config.instanceName || 'BudgetBoss';
             
             // Get the current totals
             const response = await fetch(joinPath(`api/totals/range?start=${startDate}&end=${endDate}`), fetchConfig);
@@ -1871,7 +1871,7 @@ function updateTopCategoriesList(topCategories) {
     
     if (topCategories.length === 0) {
         const li = document.createElement('li');
-        li.textContent = 'Nenhuma despesa registrada';
+        li.textContent = 'No expenses recorded';
         li.className = 'empty-list-message';
         listElement.appendChild(li);
         return;
@@ -1894,7 +1894,7 @@ function updateRecentTransactionsList(transactions) {
     
     if (transactions.length === 0) {
         const li = document.createElement('li');
-        li.textContent = 'Nenhuma transação registrada';
+        li.textContent = 'No transactions recorded';
         li.className = 'empty-list-message';
         listElement.appendChild(li);
         return;
