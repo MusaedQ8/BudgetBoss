@@ -131,6 +131,7 @@ dist
 
 # Local data files
 data/transactions.json
+data/accounts.json
 
 ## Development config
 # nodemon.json

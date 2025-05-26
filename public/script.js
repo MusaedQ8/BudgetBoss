@@ -7,9 +7,7 @@ let currentFilter = null; // null = show all, 'income' = only income, 'expense' 
 let editingTransactionId = null;
 let currentSortField = 'date';
 let currentSortDirection = 'desc';
-
-let currentAccountType = 'account'; // Default account type
-let currentAccount = null;
+let accountMap = {};
 
 // Theme toggle functionality
 function getBaseUrl() {
@@ -20,6 +18,11 @@ function getBaseUrl() {
     // Fallback to window.location.origin
     return window.location.origin;
 }
+
+function getCssVar(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
 
 function initThemeToggle() {
     const themeToggle = document.getElementById('themeToggle');
@@ -39,6 +42,10 @@ function initThemeToggle() {
         document.documentElement.setAttribute('data-theme', newTheme);
         document.documentElement.style.setProperty('--is-dark', newTheme === 'dark' ? '1' : '0');
         localStorage.setItem('theme', newTheme);
+
+        if (window.dashboardData) {
+            updateDashboardUI(window.dashboardData);
+        }
     });
 }
 
@@ -331,21 +338,63 @@ async function loadAccounts() {
         await handleFetchResponse(response);
         const accounts = await response.json();
 
-        console.log(accounts);
-
+        accountMap = {};
+        accounts.forEach(account => {
+            accountMap[account.id] = account.name;
+        });
+        
         const accountsList = document.getElementById('accountsList');
+        if (!accountsList) return;
         accountsList.innerHTML = accounts.map(account => {
             return `
             <div class="transaction-item" data-id="${account.id}">
                 <div class="transaction-content">
                     <div class="details">
                         <div class="name">${account.name}</div>
-                        <div class="amount">${formatCurrency(account.balance)}</div>
+                        <div class="type">${account.type}</div>
+                    </div>
+                    <div class="transaction-amount ${account.balance < 0 ? 'expense' : 'income'}">
+                        ${account.balance < 0 ? '-' : ''}${formatCurrency(account.balance)}
                     </div>
                 </div>
+                <button class="delete-transaction" aria-label="Delete account">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 6h18"></path>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
+                        <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                </button>
             </div>
             `;
         }).join('');
+
+        accountsList.querySelectorAll('.delete-transaction').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const id = btn.closest('.transaction-item').dataset.id;
+                if (confirm('Deseja deletar esta conta?')) {
+                    await deleteAccount(id);
+                }
+            });
+        });
+
+        accountsList.querySelectorAll('.transaction-item').forEach(item => {
+        item.querySelector('.transaction-content').addEventListener('click', () => {
+            const id = item.dataset.id;
+            const name = item.querySelector('.name').textContent;
+            const type = item.querySelector('.type').textContent === 'Credit Card' ? 'creditCard' : 'account';
+
+            document.getElementById('accountId').value = id;
+            document.getElementById('name').value = name;
+
+            document.querySelectorAll('.toggle-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.type === type);
+            });
+
+            document.getElementById('accountModal').classList.add('active');
+        });
+    });
+
         
     }catch (error) {
     console.error('Error loading accounts:', error);
@@ -393,6 +442,7 @@ async function loadTransactions() {
                         <div class="description">${transaction.description}</div>
                         <div class="metadata">
                             ${transaction.category ? `<span class="category">${transaction.category}</span>` : ''}
+                            ${transaction.accountId ? `<span class="account-name">${accountMap[transaction.accountId] || 'Account'}</span>` : ''}
                             <span class="date">${formattedDate}</span>
                             ${isRecurring ? `<span class="recurring-info">(Recurring)</span>` : ''}
                         </div>
@@ -426,7 +476,8 @@ async function loadTransactions() {
                 // For recurring instances, get the parent transaction
                 let transaction = filteredTransactions.find(t => t.id === id);
                 if (isRecurring) {
-                    const parentId = id.match(/^[^-]+-[^-]+-[^-]+-[^-]+-[^-]+/)[0];
+                    const match = id.match(/^[^-]+-[^-]+-[^-]+-[^-]+-[^-]+/);
+                    const parentId = match ? match[0] : id;
                     transaction = filteredTransactions.find(t => t.id === parentId) || transaction;
                 }
                 
@@ -470,7 +521,9 @@ async function loadTransactions() {
 }
 
 // Update editTransaction function
-function editTransaction(id, transaction, isRecurringInstance) {
+async function editTransaction(id, transaction, isRecurringInstance) {
+    await populateAccountsSelect();
+
     // For recurring instances, always use the base transaction ID
     if (isRecurringInstance) {
         // Extract the base transaction ID (everything before the date)
@@ -498,6 +551,7 @@ function editTransaction(id, transaction, isRecurringInstance) {
     document.getElementById('amount').value = transaction.amount;
     document.getElementById('description').value = transaction.description;
     document.getElementById('transactionDate').value = transaction.date;
+    document.getElementById('accountSelect').value = transaction.accountId || '';
     
     // Update the currentTransactionType to match the transaction being edited
     currentTransactionType = transaction.type;
@@ -588,36 +642,63 @@ async function updateTotals() {
 
 // Custom Categories Management
 function loadCustomCategories() {
-    const customCategories = JSON.parse(localStorage.getItem('customCategories') || '[]');
-    const categorySelect = document.getElementById('category');
-    const addNewOption = categorySelect.querySelector('option[value="add_new"]');
-    
-    // Remove existing custom categories
-    Array.from(categorySelect.options).forEach(option => {
-        if (option.dataset.custom === 'true') {
-            categorySelect.removeChild(option);
-        }
-    });
-    
-    // Add custom categories before the "Add Category" option
-    customCategories.forEach(category => {
-        const option = document.createElement('option');
-        option.value = category;
-        option.textContent = category;
-        option.dataset.custom = 'true';
-        categorySelect.insertBefore(option, addNewOption);
-    });
+    fetch(joinPath(`api/categories`), fetchConfig)
+        .then(response => handleFetchResponse(response))
+        .then(response => response.json())
+        .then(categories => {
+            const categorySelect = document.getElementById('category');
+            const addNewOption = categorySelect.querySelector('option[value="add_new"]');
+            
+            // Remove existing custom categories
+            Array.from(categorySelect.options).forEach(option => {
+                if (option.dataset.custom === 'true') {
+                    categorySelect.removeChild(option);
+                }
+            });
+            
+            // Add custom categories before the "Add Category" option
+            categories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category;
+                option.textContent = category;
+                option.dataset.custom = 'true';
+                categorySelect.insertBefore(option, addNewOption);
+            });
+        })
+        .catch(error => {
+            console.error('Error loading categories:', error);
+            toastManager.show('Failed to load categories. Please refresh the page.', 'error');
+        });
 }
 
 function saveCustomCategory(category) {
     try {
-        const customCategories = JSON.parse(localStorage.getItem('customCategories') || '[]');
-        if (!customCategories.includes(category)) {
-            customCategories.push(category);
-            localStorage.setItem('customCategories', JSON.stringify(customCategories));
+        fetch(joinPath(`api/categories`), {
+            ...fetchConfig,
+            method: 'POST',
+            headers: {
+                ...fetchConfig.headers,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ name: category })
+        })
+        .then(response => {
+            if (!response.ok) {
+                if (response.status === 409) {
+                    throw new Error('Category already exists');
+                }
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(() => {
             toastManager.show(`New category (${category}) added!`, 'success');
-        }
-        loadCustomCategories();
+            loadCustomCategories();
+        })
+        .catch(error => {
+            console.error('Error saving custom category:', error);
+            toastManager.show(`Failed to save category: ${error.message}`, 'error');
+        });
     }
     catch (error) {
         console.error('Error saving custom category:', error);
@@ -678,13 +759,19 @@ function initAccountModalHandling() {
     const addAccountBtn = document.getElementById('addAccountBtn');
     const closeModalBtn = document.querySelector('.close-modal');
     const accountForm = document.getElementById('accountForm');
-    const toggleBtns = document.querySelectorAll('.toggle-btn');
+    const toggleBtns = document.querySelectorAll('.account-toggle-btn');
+
+    toggleBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            toggleBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        });
+    });
 
     addAccountBtn.addEventListener('click', () => {
         modal.classList.add('active');
-        // Reset form
         accountForm.reset();
-        // Reset toggle buttons
+        document.getElementById('accountId').value = ''; // ← ESSENCIAL!
         toggleBtns.forEach(btn => {
             btn.classList.toggle('active', btn.dataset.type === 'account');
         });
@@ -696,12 +783,21 @@ function initAccountModalHandling() {
 
     accountForm.addEventListener('submit', (e) => {
         e.preventDefault();
+        const id = document.getElementById('accountId').value;
         const name = document.getElementById('name').value;
-        const type = document.querySelector('.toggle-btn.active').getAttribute('account-type');
-        addAccount(name, type);
-        modal.style.display = 'none';
+        const type = document.querySelector('.account-toggle-btn.active').getAttribute('data-type');
+
+        if (id) {
+            editAccount(id, name, type);
+        } else {
+            addAccount(name, type);
+        }
+
+        document.getElementById('accountModal').classList.remove('active');
     });
+
 }
+
 
 // Update the initTransactionModalHandling function to include category handling
 function initTransactionModalHandling() {
@@ -731,7 +827,9 @@ function initTransactionModalHandling() {
     }
 
     // Open modal
-    addTransactionBtn.addEventListener('click', () => {
+    addTransactionBtn.addEventListener('click', async () => {
+        await populateAccountsSelect();
+
         modal.classList.add('active');
         // Reset form
         transactionForm.reset();
@@ -798,7 +896,9 @@ function initTransactionModalHandling() {
             description: document.getElementById('description').value,
             category: currentTransactionType === 'expense' ? document.getElementById('category').value : null,
             date: document.getElementById('transactionDate').value,
-            recurring: buildRecurringPattern()
+            recurring: buildRecurringPattern(),
+            accountId: document.getElementById('accountSelect').value
+
         };
 
         try {
@@ -1204,6 +1304,7 @@ async function initMainPage() {
     sortDirection.classList.toggle('descending', currentSortDirection === 'desc');
 
     // Initial load
+    await loadAccounts();
     loadTransactions();
     updateTotals();
 }
@@ -1217,6 +1318,611 @@ const registerServiceWorker = () => {
     }
 }
 
+async function addAccount(name, type) {
+    try {
+        const response = await fetch(joinPath('api/accounts'), {
+            ...fetchConfig,
+            method: 'POST',
+            body: JSON.stringify({ name, type })
+        });
+
+        await handleFetchResponse(response);
+        const newAccount = await response.json();
+
+        await loadAccounts();
+        toastManager.show(`Account "${newAccount.name}" added!`, 'success');
+    } catch (error) {
+        console.error('Error adding account:', error);
+        toastManager.show('Error adding account. Please try again.', 'error');
+    }
+}
+
+async function deleteAccount(id) {
+    try {
+        const response = await fetch(joinPath(`api/accounts/${id}`), {
+            ...fetchConfig,
+            method: 'DELETE'
+        });
+        await handleFetchResponse(response);
+        await loadAccounts();
+        toastManager.show('Account deleted!', 'success');
+    } catch (error) {
+        console.error('Error deleting account:', error);
+        toastManager.show('Error deleting account. Please try again.', 'error');
+    }
+}
+
+async function editAccount(id, name, type) {
+    try {
+        const response = await fetch(joinPath(`api/accounts/${id}`), {
+            ...fetchConfig,
+            method: 'PUT',
+            body: JSON.stringify({ name, type })
+        });
+        await handleFetchResponse(response);
+        await loadAccounts();
+        toastManager.show('Conta atualizada!', 'success');
+    } catch (error) {
+        console.error('Erro ao editar conta:', error);
+        toastManager.show('Erro ao editar conta. Tente novamente.', 'error');
+    }
+}
+
+document.querySelectorAll('.nav-link').forEach(link => {
+    const currentPage = window.location.pathname.includes('accounts') ? 'accounts' : window.location.pathname.includes('dashboard') ? 'dashboard' : 'transactions';
+    if (link.dataset.page === currentPage) {
+        link.classList.add('active');
+    }
+});
+
+async function populateAccountsSelect() {
+  const select = document.getElementById('accountSelect');
+  select.innerHTML = '<option value="">Select an Account</option>';
+
+  try {
+    const res = await fetch(joinPath('api/accounts'), fetchConfig);
+    const accounts = await res.json();
+
+    accounts.forEach(acc => {
+      const opt = document.createElement('option');
+      opt.value = acc.id;
+      opt.textContent = `${acc.name} (${acc.type})`;
+      select.appendChild(opt);
+    });
+  } catch (err) {
+    console.error('Erro ao carregar contas:', err);
+    toastManager.show('Erro ao carregar contas', 'error');
+  }
+}
+
+// Dashboard functionality
+async function initDashboard() {
+    try {
+        // Inicializar componentes comuns
+        await fetchCurrentCurrency();
+        
+        // Configurar seletores de período
+        setupPeriodSelector();
+        
+        // Carregar dados iniciais (mês atual por padrão)
+        await loadDashboardData('current-month');
+    } catch (error) {
+        console.error('Error initializing dashboard:', error);
+        toastManager.show('Erro ao inicializar o dashboard. Por favor, recarregue a página.', 'error');
+    }
+}
+
+function setupPeriodSelector() {
+    const periodSelect = document.getElementById('periodSelect');
+    const customDateRange = document.getElementById('customDateRange');
+    const startDateInput = document.getElementById('startDate');
+    const endDateInput = document.getElementById('endDate');
+    const applyButton = document.getElementById('applyDateRange');
+    
+    // Configurar data atual nos inputs
+    const today = new Date();
+    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    
+    startDateInput.valueAsDate = firstDayOfMonth;
+    endDateInput.valueAsDate = today;
+    
+    // Evento de mudança no seletor de período
+    periodSelect.addEventListener('change', function() {
+        if (this.value === 'custom') {
+            customDateRange.style.display = 'block';
+        } else {
+            customDateRange.style.display = 'none';
+            loadDashboardData(this.value);
+        }
+    });
+    
+    // Evento do botão aplicar para período personalizado
+    applyButton.addEventListener('click', function() {
+        const startDate = startDateInput.value;
+        const endDate = endDateInput.value;
+        
+        if (startDate && endDate) {
+            loadDashboardData('custom', { startDate, endDate });
+        } else {
+            toastManager.show('Please select valid dates', 'error');
+        }
+    });
+}
+
+async function loadDashboardData(periodType, customDates) {
+    try {
+        // Determinar datas com base no período selecionado
+        const { startDate, endDate } = calculateDateRange(periodType, customDates);
+        
+        // Buscar transações no intervalo de datas
+        const response = await fetch(joinPath(`api/transactions/range?start=${startDate}&end=${endDate}`), fetchConfig);
+        await handleFetchResponse(response);
+        const transactions = await response.json();
+        
+        // Buscar contas
+        const accountsResponse = await fetch(joinPath('api/accounts'), fetchConfig);
+        await handleFetchResponse(accountsResponse);
+        const accounts = await accountsResponse.json();
+        
+        // Processar dados
+        const dashboardData = processDashboardData(transactions, accounts);
+        
+        // Atualizar UI
+        updateDashboardUI(dashboardData);
+        
+    } catch (error) {
+        console.error('Error loading dashboard data:', error);
+        toastManager.show('Erro ao carregar dados do dashboard', 'error');
+    }
+}
+
+function calculateDateRange(periodType, customDates) {
+    const today = new Date();
+    let startDate, endDate;
+    
+    switch (periodType) {
+        case 'current-month':
+            startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+            endDate = today;
+            break;
+            
+        case 'last-month':
+            startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+            endDate = new Date(today.getFullYear(), today.getMonth(), 0);
+            break;
+            
+        case 'last-3-months':
+            startDate = new Date(today.getFullYear(), today.getMonth() - 2, 1);
+            endDate = today;
+            break;
+            
+        case 'last-6-months':
+            startDate = new Date(today.getFullYear(), today.getMonth() - 5, 1);
+            endDate = today;
+            break;
+            
+        case 'year-to-date':
+            startDate = new Date(today.getFullYear(), 0, 1);
+            endDate = today;
+            break;
+            
+        case 'last-year':
+            startDate = new Date(today.getFullYear() - 1, 0, 1);
+            endDate = new Date(today.getFullYear() - 1, 11, 31);
+            break;
+            
+        case 'custom':
+            if (customDates) {
+                startDate = new Date(customDates.startDate);
+                endDate = new Date(customDates.endDate);
+            } else {
+                startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+                endDate = today;
+            }
+            break;
+            
+        default:
+            startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+            endDate = today;
+    }
+    
+    // Formatar datas para YYYY-MM-DD
+    return {
+        startDate: startDate.toISOString().split('T')[0],
+        endDate: endDate.toISOString().split('T')[0]
+    };
+}
+
+function processDashboardData(transactions, accounts) {
+    // Inicializar objeto de dados
+    const data = {
+        totalIncome: 0,
+        totalExpenses: 0,
+        balance: 0,
+        categoriesExpenses: {},
+        monthlyData: {},
+        recentTransactions: [],
+        topExpenseCategories: []
+    };
+    
+    // Verificar se transactions u00e9 um array
+    if (!Array.isArray(transactions)) {
+        console.error('Transactions is not an array:', transactions);
+        return data; // Retornar dados vazios
+    }
+    
+    // Processar transau00e7u00f5es
+    transactions.forEach(transaction => {
+        // Verificar se a transau00e7u00e3o tem os campos necessu00e1rios
+        if (!transaction || typeof transaction.amount !== 'number') {
+            console.warn('Invalid transaction:', transaction);
+            return; // Pular esta transau00e7u00e3o
+        }
+        
+        if (transaction.type === 'income') {
+            data.totalIncome += transaction.amount;
+        } else {
+            data.totalExpenses += transaction.amount;
+            
+            const category = transaction.category || 'Uncategorized';
+            if (!data.categoriesExpenses[category]) {
+                data.categoriesExpenses[category] = 0;
+            }
+            data.categoriesExpenses[category] += transaction.amount;
+        }
+        
+        if (transaction.date && typeof transaction.date === 'string') {
+            const month = transaction.date.substring(0, 7);
+            if (!data.monthlyData[month]) {
+                data.monthlyData[month] = { income: 0, expenses: 0 };
+            }
+            
+            if (transaction.type === 'income') {
+                data.monthlyData[month].income += transaction.amount;
+            } else {
+                data.monthlyData[month].expenses += transaction.amount;
+            }
+        }
+    });
+    
+    data.balance = data.totalIncome - data.totalExpenses;
+    
+    data.recentTransactions = [...transactions]
+        .filter(t => t && t.date)
+        .sort((a, b) => new Date(b.date) - new Date(a.date))
+        .slice(0, 5);
+    
+    data.topExpenseCategories = Object.entries(data.categoriesExpenses)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10)
+        .map(([category, amount]) => ({ category, amount }));
+    
+    return data;
+}
+
+function updateDashboardUI(data) {
+    window.dashboardData = data;
+    document.getElementById('totalIncome').textContent = formatCurrency(data.totalIncome);
+    document.getElementById('totalExpenses').textContent = formatCurrency(data.totalExpenses);
+    
+    const balanceElement = document.getElementById('balance');
+    balanceElement.textContent = formatCurrency(Math.abs(data.balance));
+    if (data.balance < 0) {
+        balanceElement.classList.add('negative');
+        balanceElement.classList.remove('positive');
+    } else {
+        balanceElement.classList.add('positive');
+        balanceElement.classList.remove('negative');
+    }
+    
+    createIncomeVsExpensesChart(data.totalIncome, data.totalExpenses); 
+
+    createExpensesByCategoryChart(data.categoriesExpenses);
+    
+    createTrendsChart(data.monthlyData);
+    
+    updateTopCategoriesList(data.topExpenseCategories);
+    
+    updateRecentTransactionsList(data.recentTransactions);
+}
+
+function createIncomeVsExpensesChart(income, expenses) {
+    const ctx = document.getElementById('incomeVsExpensesChart').getContext('2d');
+    
+    if (window.incomeVsExpensesChart instanceof Chart) {
+        window.incomeVsExpensesChart.destroy();
+    }
+    
+    window.incomeVsExpensesChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['Income', 'Expenses'],
+            datasets: [{
+                data: [income, expenses],
+                backgroundColor: [getCssVar('--success'), getCssVar('--danger')],
+                borderColor: [getCssVar('--border'), getCssVar('--border')],
+                borderWidth: 1,
+                borderRadius: 6
+            }]
+        },
+        options: {
+            layout: {
+                padding: 0
+              },
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return formatCurrency(context.raw);
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return formatCurrency(value);
+                        },
+                        color: getCssVar('--text')
+                    },
+                    grid: {
+                        color: getCssVar('--border')
+                    }
+                },
+                x: {
+                    ticks: {
+                        color: getCssVar('--text')
+                    },
+                    grid: {
+                        color: getCssVar('--border')
+                    }
+                }
+            }
+        }
+    });
+}
+
+function createExpensesByCategoryChart(categoriesExpenses) {
+    const ctx = document.getElementById('expensesByCategoryChart').getContext('2d');
+    
+    if (window.expensesByCategoryChart instanceof Chart) {
+        window.expensesByCategoryChart.destroy();
+    }
+    
+    const categories = Object.keys(categoriesExpenses);
+    const amounts = Object.values(categoriesExpenses);
+    
+    const backgroundColors = [
+        '#f44336', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5',
+        '#2196f3', '#03a9f4', '#00bcd4', '#009688', '#4caf50',
+        '#8bc34a', '#cddc39', '#ffeb3b', '#ffc107', '#ff9800'
+    ];
+    
+    window.expensesByCategoryChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: categories,
+            datasets: [{
+                label: 'Expenses',
+                data: amounts,
+                backgroundColor: backgroundColors.slice(0, categories.length),
+                borderRadius: 6
+            }]
+        },
+        options: {
+            layout: {
+                padding: 0
+            },
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = formatCurrency(context.raw);
+                            return `${label}: ${value}`;
+                        }
+                    }
+                },
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                x: {
+                    ticks: {
+                        color: getCssVar('--text')
+                    },
+                    grid: {
+                        color: getCssVar('--border')
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        color: getCssVar('--text')
+                    },
+                    grid: {
+                        color: getCssVar('--border')
+                    }
+                }
+            }
+        }
+    });
+    
+}
+
+function createTrendsChart(monthlyData) {
+    const ctx = document.getElementById('trendsChart').getContext('2d');
+    
+    if (window.trendsChart instanceof Chart) {
+        window.trendsChart.destroy();
+    }
+    
+    const months = Object.keys(monthlyData).sort();
+    
+    const incomeData = months.map(month => monthlyData[month].income);
+    const expensesData = months.map(month => monthlyData[month].expenses);
+    const balanceData = months.map(month => monthlyData[month].income - monthlyData[month].expenses);
+    
+    const formattedMonths = months.map(month => {
+        const [year, monthNum] = month.split('-');
+        return `${monthNum}/${year}`;
+    });
+    
+    window.trendsChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: formattedMonths,
+            datasets: [
+                {
+                    label: 'Income',
+                    data: incomeData,
+                    borderColor: getCssVar('--success'),
+                    backgroundColor: getCssVar('--success-status-bg'),
+                    tension: 0.1,
+                    fill: true
+                },
+                {
+                    label: 'Expenses',
+                    data: expensesData,
+                    borderColor: getCssVar('--danger'),
+                    backgroundColor: getCssVar('--danger-status-bg'),
+                    tension: 0.1,
+                    fill: true
+                },
+                {
+                    label: 'Balance',
+                    data: balanceData,
+                    borderColor: getCssVar('--primary'),
+                    backgroundColor: hexToRgba(getCssVar('--success'), 0.2),
+                    tension: 0.1,
+                    fill: true
+                }
+            ]
+        },
+        options: {
+            layout: {
+                padding: 0
+              },
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.dataset.label || '';
+                            return `${label}: ${formatCurrency(context.raw)}`;
+                        }
+                    }
+                },
+                legend: {
+                    display: true,
+                    position: 'top',
+                    align: 'center',
+                    labels: {
+                        color: getCssVar('--text')
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    ticks: {
+                        callback: function(value) {
+                            return formatCurrency(value);
+                        },
+                        color: getCssVar('--text')
+                    },
+                    grid: {
+                        color: getCssVar('--border')
+                    }
+                },
+                x: {
+                    ticks: {
+                        color: getCssVar('--text')
+                    },
+                    grid: {
+                        color: getCssVar('--border')
+                    }
+                }
+            }
+        }
+    });
+}
+
+function hexToRgba(hex, alpha = 1) {
+    hex = hex.trim();
+    if (!hex.startsWith('#')) return hex;
+    const bigint = parseInt(hex.slice(1), 16);
+    const r = (bigint >> 16) & 255;
+    const g = (bigint >> 8) & 255;
+    const b = bigint & 255;
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function updateTopCategoriesList(topCategories) {
+    const listElement = document.getElementById('topExpenseCategories');
+    listElement.innerHTML = '';
+    
+    if (topCategories.length === 0) {
+        const li = document.createElement('li');
+        li.textContent = 'Nenhuma despesa registrada';
+        li.className = 'empty-list-message';
+        listElement.appendChild(li);
+        return;
+    }
+    
+    topCategories.forEach(item => {
+        const li = document.createElement('li');
+        li.className = 'dashboard-list-item';
+        li.innerHTML = `
+            <span class="category-name">${item.category}</span>
+            <span class="category-amount expense">${formatCurrency(item.amount)}</span>
+        `;
+        listElement.appendChild(li);
+    });
+}
+
+function updateRecentTransactionsList(transactions) {
+    const listElement = document.getElementById('recentTransactions');
+    listElement.innerHTML = '';
+    
+    if (transactions.length === 0) {
+        const li = document.createElement('li');
+        li.textContent = 'Nenhuma transação registrada';
+        li.className = 'empty-list-message';
+        listElement.appendChild(li);
+        return;
+    }
+    
+    transactions.forEach(transaction => {
+        const li = document.createElement('li');
+        li.className = 'dashboard-list-item';
+        
+        const formattedDate = new Date(transaction.date).toLocaleDateString();
+        const amountClass = transaction.type === 'income' ? 'income' : 'expense';
+        const amountPrefix = transaction.type === 'income' ? '+' : '-';
+        
+        li.innerHTML = `
+            <div class="transaction-info">
+                <span class="transaction-date">${formattedDate}</span>
+                <span class="transaction-description">${transaction.description}</span>
+                ${transaction.category ? `<span class="transaction-category">${transaction.category}</span>` : ''}
+            </div>
+            <span class="transaction-amount ${amountClass}">${amountPrefix}${formatCurrency(transaction.amount)}</span>
+        `;
+        listElement.appendChild(li);
+    });
+}
+
 // Initialize functionality
 
     initThemeToggle();
@@ -1224,15 +1930,18 @@ const registerServiceWorker = () => {
     // Check which page we're on
     const isLoginPage = window.location.pathname.includes('login');
     const isAccountsPage = window.location.pathname.includes('accounts');
+    const isDashboardPage = window.location.pathname.includes('dashboard');
     
     if (isLoginPage) {
         // Only initialize PIN inputs on login page
         setupPinInputs();
     } else if (isAccountsPage) {
-        console.log("Página de Contas")
         // Initialize accounts page functionality
         initAccountModalHandling();
         initAccountsPage();
+    } else if (isDashboardPage) {
+        // Initialize dashboard page functionality
+        initDashboard();
     } else {
         // Only initialize main page functionality when not on login
         initTransactionModalHandling();

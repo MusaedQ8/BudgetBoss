@@ -28,6 +28,7 @@ const PIN = process.env[`${projectName}_PIN`];
 const DATA_DIR = path.join(__dirname, 'data');
 const TRANSACTIONS_FILE = path.join(DATA_DIR, 'transactions.json');
 const ACCOUNTS_FILE = path.join(DATA_DIR, 'accounts.json');
+const ENABLED_CATEGORIES_FILE = path.join(DATA_DIR, 'categories.json');
 
 // Debug logging setup
 const DEBUG = process.env.DEBUG === 'TRUE';
@@ -90,6 +91,17 @@ async function loadAccounts() {
         return {
             accounts: []
         };
+    }
+}
+
+async function loadCategories() {
+    try {
+        await fs.access(ENABLED_CATEGORIES_FILE);
+        const data = await fs.readFile(ENABLED_CATEGORIES_FILE, 'utf8');
+        return JSON.parse(data);
+    } catch (error) {
+        // If file doesn't exist or is invalid, return empty structure
+        return [];
     }
 }
 
@@ -378,10 +390,62 @@ async function getTransactionsInRange(startDate, endDate) {
         .sort((a, b) => new Date(b.date) - new Date(a.date));
 }
 
+app.delete(BASE_PATH + '/api/accounts/:id', authMiddleware, async (req, res) => {
+    try {
+        const { id } = req.params;
+        let accounts = await loadAccounts();
+
+        if (!Array.isArray(accounts)) accounts = accounts.accounts || [];
+
+        const index = accounts.findIndex(acc => acc.id === id);
+        if (index === -1) {
+            return res.status(404).json({ error: 'Account not found' });
+        }
+
+        accounts.splice(index, 1);
+        await fs.writeFile(ACCOUNTS_FILE, JSON.stringify(accounts, null, 2));
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Erro ao deletar conta:', error);
+        res.status(500).json({ error: 'Failed to delete account' });
+    }
+});
+
+app.post(BASE_PATH + '/api/accounts', authMiddleware, async (req, res) => {
+    try {
+        const { name, type } = req.body;
+
+        if (!name || !type) {
+            return res.status(400).json({ error: 'Name and type are required' });
+        }
+
+        const data = await loadAccounts();
+        const accounts = Array.isArray(data) ? data : (data.accounts || []);
+
+        const newAccount = {
+            id: crypto.randomUUID(),
+            name,
+            type,
+            balance: 0
+        };
+
+        accounts.push(newAccount);
+
+        await fs.writeFile(ACCOUNTS_FILE, JSON.stringify(accounts, null, 2));
+
+        res.status(201).json(newAccount);
+    } catch (error) {
+        console.error('Error adding account:', error);
+        res.status(500).json({ error: 'Failed to add account' });
+    }
+});
+
+
 // API Routes - all under BASE_PATH
 app.post(BASE_PATH + '/api/transactions', authMiddleware, async (req, res) => {
     try {
-        const { type, amount, description, category, date, recurring } = req.body;
+        const { type, amount, description, category, date, recurring, accountId } = req.body;
         
         // Basic validation
         if (!type || !amount || !description || !date) {
@@ -466,7 +530,8 @@ app.post(BASE_PATH + '/api/transactions', authMiddleware, async (req, res) => {
             id: crypto.randomUUID(),
             amount: parseFloat(amount),
             description,
-            date: adjustedDate
+            date: adjustedDate,
+            accountId
         };
 
         // Add recurring information if present
@@ -1081,9 +1146,70 @@ app.get(BASE_PATH + '/api/calendar/transactions', apiAuthMiddleware, async (req,
     }
 });
 
+app.put(BASE_PATH + '/api/accounts/:id', authMiddleware, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, type } = req.body;
+
+        if (!name || !type) {
+            return res.status(400).json({ error: 'Name and type are required' });
+        }
+
+        let accounts = await loadAccounts();
+        if (!Array.isArray(accounts)) accounts = accounts.accounts || [];
+
+        const index = accounts.findIndex(acc => acc.id === id);
+        if (index === -1) {
+            return res.status(404).json({ error: 'Account not found' });
+        }
+
+        accounts[index].name = name;
+        accounts[index].type = type;
+
+        await fs.writeFile(ACCOUNTS_FILE, JSON.stringify(accounts, null, 2));
+
+        res.json(accounts[index]);
+    } catch (error) {
+        console.error('Erro ao atualizar conta:', error);
+        res.status(500).json({ error: 'Failed to update account' });
+    }
+});
+
+app.get(BASE_PATH + '/api/categories', authMiddleware, async (req, res) => {
+    try{
+        const categories = await loadCategories();
+        res.json(categories);
+    }catch(error){
+        console.error('Error fetching categories:', error);
+        res.status(500).json({ error: 'Failed to fetch categories' });
+    }
+});
+
+app.post(BASE_PATH + '/api/categories', authMiddleware, async (req, res) => {
+    try{
+        const { name } = req.body;
+        if (!name) return res.status(400).json({ error: 'Name is required' });
+
+        const categories = await loadCategories();
+        if (categories.includes(name)) return res.status(409).json({ error: 'Category already exists' });
+
+        categories.push(name);
+        await fs.writeFile(ENABLED_CATEGORIES_FILE, JSON.stringify(categories, null, 2));
+        res.status(201).json({ name });
+    }catch(error){
+        console.error('Error adding category:', error);
+        res.status(500).json({ error: 'Failed to add category' });
+    }
+});
+
 // Route for accounts page
 app.get(BASE_PATH + '/accounts', authMiddleware, (req, res) => {
     res.sendFile(path.join(PUBLIC_DIR, 'accounts.html'));
+});
+
+// Route for dashboard page
+app.get(BASE_PATH + '/dashboard', authMiddleware, (req, res) => {
+    res.sendFile(path.join(PUBLIC_DIR, 'dashboard.html'));
 });
 
 // Add logging to server startup

@@ -1,55 +1,36 @@
-# DumbBudget
+# DumbBudget (Custom Fork)
 
-A simple, secure personal budgeting app with PIN protection. Track your income and expenses with a clean, modern interface.
+A personal finance tracker based on [DumbWareio/DumbBudget](https://github.com/DumbWareio/DumbBudget), with key improvements for multi-account and dashboard-based financial insights.
 
-![image](https://github.com/user-attachments/assets/7874b23a-159f-4c93-8e5d-521c18666547)
+## Overview
 
+This is a fork of the original **DumbBudget** project, extended with new features to better organize and visualize your finances. In addition to the original functionality, this version introduces:
 
-## Features
+### ✅ New Features Added
 
-- 🔒 PIN-protected access
-- 💰 Track income and expenses
-- 📊 Real-time balance calculations
-- 🏷️ Categorize transactions
-- 📅 Date range filtering
-- 🔄 Sort by date or amount
-- 📱 Responsive design
-- 🌓 Light/Dark theme
-- 📤 Export to CSV
-- 🔍 Filter transactions by type
-- 💱 Multi-currency support
-- 🌐 PWA Support
+* 🏦 **Account Management**: Create and manage multiple accounts and credit cards.
+* 🔗 **Linked Transactions**: Associate each income/expense with a specific account.
+* 🧠 **Custom Categories**: Define your own spending categories with persistent storage.
+* 📈 **Dashboard**: Visual insights with charts for:
 
-## Supported Currencies
+  * Income vs Expenses
+  * Spending by Category
+  * Financial Trends over Time
 
-DumbBudget supports the following currencies:
-- USD (US Dollar) 🇺🇸
-- EUR (Euro) 🇪🇺
-- GBP (British Pound) 🇬🇧
-- JPY (Japanese Yen) 🇯🇵
-- AUD (Australian Dollar) 🇦🇺
-- CAD (Canadian Dollar) 🇨🇦
-- CHF (Swiss Franc) 🇨🇭
-- CNY (Chinese Yuan) 🇨🇳
-- HKD (Hong Kong Dollar) 🇭🇰
-- NZD (New Zealand Dollar) 🇳🇿
-- MXN (Mexican Peso) 🇲🇽
-- RUB (Russian Ruble) 🇷🇺
-- SGD (Singapore Dollar) 🇸🇬
-- KRW (South Korean Won) 🇰🇷
-- INR (Indian Rupee) 🇮🇳
-- BRL (Brazilian Real) 🇧🇷
-- ZAR (South African Rand) 🇿🇦
-- TRY (Turkish Lira) 🇹🇷  
-- PLN (Polish Złoty) 🇵🇱  
-- SEK (Swedish Krona) 🇸🇪  
-- NOK (Norwegian Krone) 🇳🇴  
-- DKK (Danish Krone) 🇩🇰  
-- IDR (Indonesia Rupiah) 🇮🇩
+### 🔄 Features from the Original Project
 
-Set your preferred currency using the `CURRENCY` environment variable (defaults to USD if not set).
+* 🔒 PIN-protected access
+* 📊 Real-time balance calculations
+* 📅 Date range filtering
+* 🔍 Transaction filtering and sorting
+* 🌓 Light/Dark mode
+* 📤 Export to CSV
+* 💱 Multi-currency support
+* 🌐 PWA support
 
-### Using Docker
+## Getting Started
+
+### Docker Quickstart
 
 ```bash
 docker run -d \
@@ -59,127 +40,37 @@ docker run -d \
   -e CURRENCY=USD \
   -e BASE_URL=http://localhost:3000 \
   -e SITE_TITLE='My Account' \
-  dumbwareio/dumbbudget:latest
+  my-custom/dumbbudget:latest
 ```
-
-```yaml
-services:
-  dumbbudget:
-    image: dumbwareio/dumbbudget:latest
-    container_name: dumbbudget
-    restart: unless-stopped
-    ports:
-      - ${DUMBBUDGET_PORT:-3000}:3000
-    volumes:
-      - ${DUMBBUDGET_DATA_PATH:-./data}:/app/data
-    environment:
-      - DUMBBUDGET_PIN=${DUMBBUDGET_PIN:-} # PIN to access the site
-      - BASE_URL=${DUMBBUDGET_BASE_URL:-http://localhost:3000} # URL to access the site
-      - CURRENCY=${DUMBBUDGET_CURRENCY:-USD} # Supported Currency Code: https://github.com/DumbWareio/DumbBudget?tab=readme-ov-file#supported-currencies
-      - SITE_TITLE=${DUMBBUDGET_SITE_TITLE:-DumbBudget} # Name to show on site
-      - INSTANCE_NAME=${DUMBBUDGET_INSTANCE_NAME:-} # Name of instance/account
-      # (OPTIONAL)
-      # Restrict origins - ex: https://subdomain.domain.tld,https://auth.proxy.tld,http://internalip:port' (default is '*')
-      # - ALLOWED_ORIGINS=${DUMBBUDGET_ALLOWED_ORIGINS:-http://localhost:3000}
-    # healthcheck:
-    #   test: wget --spider -q  http://127.0.0.1:3000
-    #   start_period: 20s
-    #   interval: 20s
-    #   timeout: 5s
-    #   retries: 3
-```
-
-> **Note**: Replace `/path/to/your/data` with the actual path where you want to store your transaction data on the host machine.
 
 ### Environment Variables
 
-| Variable | Description | Required | Default | Example |
-|----------|-------------|----------|---------|---------|
-| `DUMBBUDGET_PIN` | PIN code for accessing the application | Yes | - | `12345` |
-| `PORT` | Port number for the server | No | `3000` | `8080` |
-| `CURRENCY` | Currency code for transactions | No | `USD` | `EUR` |
-| `BASE_URL` | Base URL for the application | No | `http://localhost:PORT` | `https://budget.example.com` |
-| `SITE_TITLE` | Allows you to name each instance should you have multiple. | No | - | `My Account` |
+| Variable         | Description                    | Required | Default                                        |
+| ---------------- | ------------------------------ | -------- | ---------------------------------------------- |
+| `DUMBBUDGET_PIN` | PIN code to access the app     | Yes      | -                                              |
+| `CURRENCY`       | Currency code for transactions | No       | USD                                            |
+| `BASE_URL`       | Base URL of the app            | No       | [http://localhost:3000](http://localhost:3000) |
+| `SITE_TITLE`     | Title shown on the app         | No       | DumbBudget                                     |
+| `INSTANCE_NAME`  | Name of the specific instance  | No       | -                                              |
 
-## Development Setup
+### Development
 
-1. Clone the repository:
 ```bash
-git clone https://github.com/DumbWareio/DumbBudget.git
-cd DumbBudget
-```
-
-2. Install dependencies:
-```bash
+git clone https://github.com/maranguapo/MaranguapoBudget.git
+cd MaranguapoBudget
 npm install
-```
-
-3. Create a `.env` file:
-```env
-DUMBBUDGET_PIN=12345
-PORT=3000
-NODE_ENV=development
-BASE_URL=http://localhost:3000
-CURRENCY=USD
-SITE_TITLE='DumbBudget'
-INSTANCE_NAME='My Account'
-ALLOWED_ORIGINS=* # Restrict origins - ex: https://subdomain.domain.tld,https://auth.proxy.tld,http://internalip:port' (default is '*')
-```
-
-4. Start the development server:
-```bash
 npm run dev
 ```
 
-5. Open http://localhost:3000 in your browser
+## Credits
 
-## Building from Source
+* Original project by [DumbWareio](https://github.com/DumbWareio/DumbBudget)
+* Fork and enhancements by [Maranguapo](https://github.com/maranguapo)
 
-```bash
-# Build the Docker image
-docker build -t dumbwareio/dumbbudget:latest .
+## License
 
-# Create a directory for persistent data
-mkdir -p ~/dumbbudget-data
-
-# Run the container
-docker run -d \
-  -p 3000:3000 \
-  -v ~/dumbbudget-data:/app/data \
-  -e DUMBBUDGET_PIN=12345 \
-  -e BASE_URL=http://localhost:3000 \
-  -e SITE_TITLE='My Account' \
-  dumbwareio/dumbbudget:latest
-```
-
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## Security
-
-DumbBudget includes several security features:
-- PIN protection for access
-- Rate limiting on PIN attempts
-- Temporary lockout after failed attempts
-- No sensitive data stored in browser storage
-- Secure session handling
-
-## Support
-
-- Report bugs by opening an issue
-- Request features through issues
-- [Join our community discussions](https://discord.gg/zJutzxWyq2)
-
-## Support the Project
-
-<a href="https://www.buymeacoffee.com/dumbware" target="_blank">
-  <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="60">
-</a>
+MIT
 
 ---
-Made with ❤️ by [DumbWare.io](https://github.com/DumbWareio)
+
+Built with ❤️ on top of a great open source foundation.

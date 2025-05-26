@@ -24,6 +24,13 @@
 <body>
     <main>
         <div class="container">
+            <header>
+                <nav class="top-nav">
+                    <a href="index.html" class="nav-link active" data-page="transactions">Transactions</a>
+                    <a href="accounts.html" class="nav-link" data-page="accounts">Accounts</a>
+                    <a href="dashboard.html" class="nav-link" data-page="dashboard">Dashboard</a>
+                </nav>
+            </header>
             <button id="themeToggle" aria-label="Toggle theme">
                 <svg class="moon" viewBox="0 0 24 24">
                     <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
@@ -43,6 +50,7 @@
 
             <header>
                 <h1><span id="instance-name">DumbBudget</span></h1>
+                <h2>Transactions</h2>
             </header>
 
             <section class="overview">
@@ -137,6 +145,12 @@
                 <button class="close-modal">&times;</button>
             </div>
             <form id="transactionForm" class="form">
+                <div id="accountField">
+                    <select id="accountSelect" required>
+                        <option value="">Select Account</option>
+                        <!-- opções preenchidas dinamicamente via JS -->
+                    </select>
+                </div>
                 <div id="categoryField" style="display: none;">
                     <select id="category" required>
                         <option value="Bills">Bills</option>

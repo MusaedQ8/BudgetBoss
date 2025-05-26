@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loading...</title>
+    <script src="config.js"></script>
+    <link rel="manifest" href="manifest.json">
+    <script>
+        // Prevent theme flicker by setting theme immediately
+        (function() {
+            const theme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+        document.addEventListener('DOMContentLoaded', () => {
+            const siteTitle = window.appConfig.title;
+            document.title = siteTitle;
+            document.querySelector('h1').textContent = siteTitle;
+        });
+    </script>
+    <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+    <link rel="stylesheet" href="assets/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <main>
+        <div class="container">
+            <header>
+                <nav class="top-nav">
+                    <a href="index.html" class="nav-link" data-page="transactions">Transactions</a>
+                    <a href="accounts.html" class="nav-link" data-page="accounts">Accounts</a>
+                    <a href="dashboard.html" class="nav-link active" data-page="dashboard">Dashboard</a>
+                </nav>
+            </header>
+            <button id="themeToggle" aria-label="Toggle theme">
+                <svg class="moon" viewBox="0 0 24 24">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                </svg>
+                <svg class="sun" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="5"></circle>
+                    <line x1="12" y1="1" x2="12" y2="3"></line>
+                    <line x1="12" y1="21" x2="12" y2="23"></line>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                    <line x1="1" y1="12" x2="3" y2="12"></line>
+                    <line x1="21" y1="12" x2="23" y2="12"></line>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                    <line x1="18.36" y1="5.64" x2="19.78" y1="4.22"></line>
+                </svg>
+            </button>
+
+            <header>
+                <h1><span id="instance-name">DumbBudget</span></h1>
+                <h2>Dashboard</h2>
+            </header>
+
+            <!-- Period filters -->
+            <div class="dashboard-filters">
+                <div class="period-selector">
+                    <label for="periodSelect">Period:</label>
+                    <select id="periodSelect">
+                        <option value="current-month">Current Month</option>
+                        <option value="last-month">Last Month</option>
+                        <option value="last-3-months">Last 3 Months</option>
+                        <option value="last-6-months">Last 6 Months</option>
+                        <option value="year-to-date">Year to Date</option>
+                        <option value="last-year">Last Year</option>
+                        <option value="custom">Custom</option>
+                    </select>
+                </div>
+                <div id="customDateRange" style="display: none;">
+                    <label for="startDate">From:</label>
+                    <input type="date" id="startDate">
+                    <label for="endDate">To:</label>
+                    <input type="date" id="endDate">
+                    <button id="applyDateRange" class="btn-primary">Apply</button>
+                </div>
+            </div>
+
+            <!-- Summary cards -->
+            <div class="dashboard-summary-cards">
+                <div class="card income">
+                    <h3>Income</h3>
+                    <p class="amount income" id="totalIncome">$0.00</p>
+                </div>
+                <div class="card expenses">
+                    <h3>Expenses</h3>
+                    <p class="amount expense" id="totalExpenses">$0.00</p>
+                </div>
+                <div class="card">
+                    <h3>Balance</h3>
+                    <p class="amount" id="balance">$0.00</p>
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div class="charts-container">
+                <div class="chart-card">
+                    <h3>Income vs Expenses</h3>
+                    <canvas id="incomeVsExpensesChart"></canvas>
+                </div>
+                <div class="chart-card">
+                    <h3>Expenses by Category</h3>
+                    <canvas id="expensesByCategoryChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Trends over time -->
+            <div class="chart-card full-width">
+                <h3>Trends Over Time</h3>
+                <canvas id="trendsChart"></canvas>
+            </div>
+
+            <!-- Top Categories -->
+            <div class="dashboard-lists">
+                <div class="list-card">
+                    <h3>Top Expense Categories</h3>
+                    <ul id="topExpenseCategories" class="dashboard-list"></ul>
+                </div>
+                <div class="list-card">
+                    <h3>Recent Transactions</h3>
+                    <ul id="recentTransactions" class="dashboard-list"></ul>
+                </div>
+            </div>
+        </div>
+        <div id="toast-container" class="toast-container"></div>
+    </main>
+
+    
+    <script type="module" src="script.js"></script>
+</body>
+</html>
