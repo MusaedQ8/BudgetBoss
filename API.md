@@ -1,13 +1,13 @@
-# DumbBudget API Documentation
+# BudgetBoss API Documentation
 
-This document describes the API endpoints available for DumbCal integration with DumbBudget.
+This document describes the API endpoints available for DumbCal integration with BudgetBoss.
 
 ## Authentication
 
-All API requests must include the `DUMB_SECRET` in the request headers:
+All API requests must include the `BUDGETBOSS_SECRET` in the request headers:
 
 ```
-Authorization: Bearer YOUR_DUMB_SECRET
+Authorization: Bearer YOUR_BUDGETBOSS_SECRET
 ```
 
 If the secret is invalid or missing, the API will return a 401 Unauthorized response.

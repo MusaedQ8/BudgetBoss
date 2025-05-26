@@ -1,5 +1,5 @@
 {
-  "name": "dumbbudget",
+  "name": "budgetboss",
   "version": "1.0.0",
   "description": "A stupid simple budget app",
   "main": "server.js",

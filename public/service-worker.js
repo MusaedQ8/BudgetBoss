@@ -1,4 +1,4 @@
-const CACHE_NAME = "DUMBBUDGET_PWA_CACHE_V1";
+const CACHE_NAME = "BUDGETBOSS_PWA_CACHE_V1";
 const ASSETS_TO_CACHE = [];
 
 const preload = async () => {
