@@ -1,22 +1,22 @@
 
 services:
-  dumbbudget:
-    image: dumbwareio/dumbbudget:latest
-    container_name: dumbbudget
+  budgetboss:
+    image: maranguapo/budgetboss:latest
+    container_name: budgetboss
     restart: unless-stopped
     ports:
-      - ${DUMBBUDGET_PORT:-3000}:3000
+      - ${BUDGETBOSS_PORT:-3000}:3000
     volumes:
-      - ${DUMBBUDGET_DATA_PATH:-./data}:/app/data
+      - ${BUDGETBOSS_DATA_PATH:-./data}:/app/data
     environment:
-      - DUMBBUDGET_PIN=${DUMBBUDGET_PIN:-} # PIN to access the site
-      - BASE_URL=${DUMBBUDGET_BASE_URL:-http://localhost:3000} # URL to access the site
-      - CURRENCY=${DUMBBUDGET_CURRENCY:-USD} # Supported Currency Code: https://github.com/DumbWareio/DumbBudget?tab=readme-ov-file#supported-currencies
-      - SITE_TITLE=${DUMBBUDGET_SITE_TITLE:-DumbBudget} # Name to show on site
-      - INSTANCE_NAME=${DUMBBUDGET_INSTANCE_NAME:-} # Name of instance/account
+      - BUDGETBOSS_PIN=${BUDGETBOSS_PIN:-} # PIN to access the site
+      - BASE_URL=${BUDGETBOSS_BASE_URL:-http://localhost:3000} # URL to access the site
+      - CURRENCY=${BUDGETBOSS_CURRENCY:-USD} # Supported Currency Code: https://github.com/maranguapo/BudgetBoss?tab=readme-ov-file#supported-currencies
+      - SITE_TITLE=${BUDGETBOSS_SITE_TITLE:-BudgetBoss} # Name to show on site
+      - INSTANCE_NAME=${BUDGETBOSS_INSTANCE_NAME:-} # Name of instance/account
       # (OPTIONAL)
       # Restrict origins - ex: https://subdomain.domain.tld,https://auth.proxy.tld,http://internalip:port' (default is '*')
-      # - ALLOWED_ORIGINS=${DUMBBUDGET_ALLOWED_ORIGINS:-http://localhost:3000}
+      # - ALLOWED_ORIGINS=${BUDGETBOSS_ALLOWED_ORIGINS:-http://localhost:3000}
     # healthcheck:
     #   test: wget --spider -q  http://127.0.0.1:3000
     #   start_period: 20s
