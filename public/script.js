@@ -353,9 +353,6 @@ async function loadAccounts() {
                         <div class="name">${account.name}</div>
                         <div class="type">${account.type}</div>
                     </div>
-                    <div class="transaction-amount ${account.balance < 0 ? 'expense' : 'income'}">
-                        ${account.balance < 0 ? '-' : ''}${formatCurrency(account.balance)}
-                    </div>
                 </div>
                 <button class="delete-transaction" aria-label="Delete account">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
