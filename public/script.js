@@ -235,6 +235,7 @@ function submitPin(pin, inputs) {
 
 // Supported currencies list
 const SUPPORTED_CURRENCIES = {
+    KWD: { locale: 'ar-KW', symbol: 'د.ك' },
     USD: { locale: 'en-US', symbol: '$' },
     EUR: { locale: 'de-DE', symbol: '€' },
     GBP: { locale: 'en-GB', symbol: '£' },
@@ -261,7 +262,7 @@ const SUPPORTED_CURRENCIES = {
     PHP: { locale: 'fil-PH', symbol: '₱' }
 };
 
-let currentCurrency = 'USD'; // Default currency
+let currentCurrency = 'KWD'; // Default currency
 
 // Fetch current currency from server
 async function fetchCurrentCurrency() {
@@ -282,7 +283,7 @@ async function fetchCurrentCurrency() {
 
 // Update the formatCurrency function to use the current currency
 const formatCurrency = (amount) => {
-    const currencyInfo = SUPPORTED_CURRENCIES[currentCurrency] || SUPPORTED_CURRENCIES.USD;
+    const currencyInfo = SUPPORTED_CURRENCIES[currentCurrency] || SUPPORTED_CURRENCIES.KWD;
     return new Intl.NumberFormat(currencyInfo.locale, {
         style: 'currency',
         currency: currentCurrency
